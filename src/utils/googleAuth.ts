@@ -3,10 +3,12 @@ import { generateRandomLettersUsername } from '../constants/auth';
 import { saveUser, StoredUser } from './storage';
 
 /**
- * Configure with your Google Cloud "Web application" OAuth client ID.
- * Get it from: https://console.cloud.google.com/apis/credentials
+ * Google Cloud → APIs & Services → Credentials
+ * - Web application → EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (required for server token / Android)
+ * - iOS → EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID (required on iOS native Sign-In)
  */
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
 
 let isConfigured = false;
 
@@ -14,6 +16,7 @@ function ensureConfigured() {
   if (isConfigured) return;
   GoogleSignin.configure({
     webClientId: GOOGLE_WEB_CLIENT_ID || undefined,
+    iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
     offlineAccess: false,
   });
   isConfigured = true;
