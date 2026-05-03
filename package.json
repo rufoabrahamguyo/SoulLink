@@ -1,46 +1,19 @@
 {
   "name": "soullink",
   "version": "1.0.0",
-  "main": "index.ts",
+  "private": true,
+  "workspaces": ["frontend"],
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web",
-    "build:dev": "eas build --profile development",
-    "build:preview": "eas build --profile preview",
-    "build:prod": "eas build --profile production",
-    "submit": "eas submit --profile production"
-  },
-  "dependencies": {
-    "@expo/vector-icons": "^15.1.1",
-    "@react-native-firebase/app": "^24.0.0",
-    "@react-native-firebase/auth": "^24.0.0",
-    "@react-native-firebase/firestore": "^24.0.0",
-    "@react-native-google-signin/google-signin": "^16.1.2",
-    "@react-navigation/native": "^7.1.34",
-    "@react-navigation/stack": "^7.8.6",
-    "expo": "~55.0.9",
-    "expo-linear-gradient": "^55.0.9",
-    "expo-secure-store": "^55.0.9",
-    "expo-status-bar": "~55.0.4",
-    "firebase": "^12.11.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "react-native": "0.83.4",
-    "react-native-gesture-handler": "^2.30.0",
-    "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0",
-    "react-native-svg": "15.15.3",
-    "react-native-vector-icons": "^10.3.0",
-    "react-native-web": "^0.21.0"
-  },
-  "devDependencies": {
-    "@types/react": "~19.2.2",
-    "@types/react-native-vector-icons": "^6.4.18",
-    "babel-preset-expo": "^55.0.12",
-    "eas-cli": "^18.4.0",
-    "typescript": "~5.9.2"
-  },
-  "private": true
+    "start": "npm run start -w soullink-frontend",
+    "android": "npm run android -w soullink-frontend",
+    "ios": "npm run ios -w soullink-frontend",
+    "web": "npm run web -w soullink-frontend",
+    "android:signing": "npm run android:signing -w soullink-frontend",
+    "api": "cd backend && python3 manage.py runserver 0.0.0.0:8000",
+    "api:migrate": "cd backend && python3 manage.py migrate",
+    "build:dev": "npm run build:dev -w soullink-frontend",
+    "build:preview": "npm run build:preview -w soullink-frontend",
+    "build:prod": "npm run build:prod -w soullink-frontend",
+    "submit": "npm run submit -w soullink-frontend"
+  }
 }

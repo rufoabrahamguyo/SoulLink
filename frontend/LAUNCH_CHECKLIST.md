@@ -1,10 +1,14 @@
 # SoulLink — store launch checklist
 
+All mobile app paths live under **`frontend/`** (React Native / Expo).
+
+The API lives under **`backend/`** (Django). Run `python3 -m pip install -r backend/requirements.txt`, then `npm run api` from the repo root (or `cd backend && python3 manage.py runserver 0.0.0.0:8000`).
+
 Use this before first Google Play and App Store submissions.
 
 ## Identity and versioning
 
-- [ ] Confirm `expo.ios.bundleIdentifier` and `expo.android.package` in `app.json` match the IDs registered in Apple Developer and Google Play Console.
+- [ ] Confirm `expo.ios.bundleIdentifier` and `expo.android.package` in **`frontend/app.json`** match the IDs registered in Apple Developer and Google Play Console.
 - [ ] Bump `expo.version` for each user-facing release.
 - [ ] Bump `ios.buildNumber` and `android.versionCode` for each store upload (or rely on EAS `autoIncrement` for production builds).
 
@@ -16,11 +20,11 @@ Use this before first Google Play and App Store submissions.
 
 ## EAS (recommended for builds)
 
-1. `npm install` then `npx eas login`
-2. `npx eas init` — links the project and can add `extra.eas.projectId` to `app.json`
-3. **Internal testing:** `npx eas build --profile preview --platform android` (or `ios`)
-4. **Store release:** `npx eas build --profile production --platform all`
-5. **Submit:** `npx eas submit --profile production --platform android` (and `ios` after Apple setup)
+1. From repo root: `npm install`. For EAS: `cd frontend && npx eas login`
+2. From **`frontend/`**: `npx eas init` — links the project and can add `extra.eas.projectId` to `app.json`
+3. **Internal testing:** `cd frontend && npx eas build --profile preview --platform android` (or `ios`)
+4. **Store release:** `cd frontend && npx eas build --profile production --platform all`
+5. **Submit:** `cd frontend && npx eas submit --profile production --platform android` (and `ios` after Apple setup)
 
 ## Google Play
 

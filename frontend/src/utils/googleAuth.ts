@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { generateRandomLettersUsername } from '../constants/auth';
 import { saveUser, StoredUser } from './storage';
@@ -24,7 +25,7 @@ function ensureConfigured() {
 
 export type GoogleSignInResult =
   | { success: true; user: StoredUser }
-  | { success: false; cancelled: boolean };
+  | { success: false; cancelled: boolean; message?: string };
 
 /**
  * Signs in with Google. Shows the native account picker.
@@ -35,6 +36,10 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
   try {
     ensureConfigured();
 
+    if (Platform.OS === 'android') {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    }
+
     const response = await GoogleSignin.signIn();
 
     if (response.type === 'cancelled') {
@@ -42,22 +47,42 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
     }
 
     if (response.type !== 'success' || !response.data) {
-      return { success: false, cancelled: false };
+      return {
+        success: false,
+        cancelled: false,
+        message: 'Unexpected response from Google Sign-In.',
+      };
     }
 
-    const { user } = response.data;
+    const profile = response.data.user;
+    const id =
+      profile?.id?.trim() ||
+      profile?.email?.trim() ||
+      `google_${Date.now()}`;
+
     const username = generateRandomLettersUsername(10);
 
     const storedUser: StoredUser = {
-      id: user.id,
+      id,
       username,
       authMethod: 'google',
       createdAt: new Date().toISOString(),
     };
 
-    await saveUser(storedUser);
+    try {
+      await saveUser(storedUser);
+    } catch (err) {
+      console.warn('[googleAuth] saveUser failed (continuing to app):', err);
+    }
+
     return { success: true, user: storedUser };
-  } catch {
-    return { success: false, cancelled: false };
+  } catch (err) {
+    let message = err instanceof Error ? err.message : String(err);
+    if (message.includes('DEVELOPER_ERROR')) {
+      message =
+        'Android: In Google Cloud, add package com.rufoabrahamguyo.soullink and the SHA-1 from :app:signingReport → Variant debug (`frontend/android/app/debug.keystore`). If it still fails, add BOTH SHA-1s from npm run android:signing — app uses a different keystore than ~/.android/debug.keystore.';
+    }
+    console.warn('[googleAuth] signInWithGoogle:', err);
+    return { success: false, cancelled: false, message };
   }
 }

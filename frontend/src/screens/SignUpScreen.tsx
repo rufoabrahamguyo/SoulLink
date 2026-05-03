@@ -23,6 +23,7 @@ export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
   UsernameSelection: undefined;
+  EmotionSelection: undefined;
 };
 
 type SignUpScreenNavigationProp = StackNavigationProp<
@@ -66,6 +67,13 @@ export default function SignUpScreen() {
       const result = await signInWithGoogle();
       if (result.success) {
         navigation.replace('EmotionSelection');
+        return;
+      }
+      if (!result.cancelled) {
+        Alert.alert(
+          'Sign in failed',
+          result.message ?? 'Please try again.',
+        );
       }
     } catch {
       Alert.alert('Error', 'Sign in failed. Please try again.');

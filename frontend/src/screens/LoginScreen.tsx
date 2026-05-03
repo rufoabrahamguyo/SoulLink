@@ -67,8 +67,14 @@ export default function LoginScreen() {
       const result = await signInWithGoogle();
       if (result.success) {
         navigation.replace('EmotionSelection');
+        return;
       }
-      // If cancelled, do nothing; user dismissed account picker
+      if (!result.cancelled) {
+        Alert.alert(
+          'Sign in failed',
+          result.message ?? 'Please try again.',
+        );
+      }
     } catch {
       Alert.alert('Error', 'Sign in failed. Please try again.');
     } finally {
