@@ -16,20 +16,12 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PRIMARY_PURPLE, TEXT_DARK, TEXT_MUTED } from '../constants/theme';
+import { RootStackParamList } from '../navigation/RootNavigator';
+import { signUpWithEmail, signInWithGoogle, signInWithApple, isGoogleSignInAvailable } from '../services/auth';
 import WaveCurve from '../components/WaveCurve';
 import SocialAuthButtons from '../components/SocialAuthButtons';
 
-export type RootStackParamList = {
-  Login: undefined;
-  SignUp: undefined;
-  UsernameSelection: undefined;
-  EmotionSelection: undefined;
-};
-
-type SignUpScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  'SignUp'
->;
+type SignUpScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SignUp'>;
 
 export default function SignUpScreen() {
   const navigation = useNavigation<SignUpScreenNavigationProp>();
@@ -38,10 +30,16 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAppleLoading, setIsAppleLoading] = useState(false);
 
   const handleSignUp = async () => {
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Missing fields', 'Please enter your email, password, and confirm password.');
+      Alert.alert('Missing fields', 'Please fill in all fields.');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Weak password', 'Password must be at least 6 characters.');
       return;
     }
     if (password !== confirmPassword) {
@@ -50,41 +48,44 @@ export default function SignUpScreen() {
     }
     setIsLoading(true);
     try {
-      // TODO: Implement actual sign up
-      await new Promise((r) => setTimeout(r, 500));
-      navigation.replace('UsernameSelection');
+      const result = await signUpWithEmail(email, password);
+      if (!result.success) {
+        Alert.alert('Sign up failed', result.message);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
   const handleSignInWithGoogle = async () => {
+    if (!isGoogleSignInAvailable()) {
+      Alert.alert(
+        'Development build required',
+        'Google Sign-In needs the SoulLink dev app. From the repo root run: npm run android or npm run ios, then open SoulLink (not Expo Go).',
+      );
+      return;
+    }
     setIsGoogleLoading(true);
     try {
-      const { signInWithGoogle } = await import('../utils/googleAuth');
       const result = await signInWithGoogle();
-      if (result.success) {
-        navigation.replace('EmotionSelection');
-        return;
+      if (!result.success && !result.cancelled) {
+        Alert.alert('Sign in failed', result.message ?? 'Please try again.');
       }
-      if (!result.cancelled) {
-        Alert.alert(
-          'Sign in failed',
-          result.message ?? 'Please try again.',
-        );
-      }
-    } catch {
-      Alert.alert('Error', 'Sign in failed. Please try again.');
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
-  const handleSignInWithApple = () => {
-    // TODO: Implement Apple auth
-    navigation.replace('UsernameSelection');
+  const handleSignInWithApple = async () => {
+    setIsAppleLoading(true);
+    try {
+      const result = await signInWithApple();
+      if (!result.success && !result.cancelled) {
+        Alert.alert('Sign in failed', result.message ?? 'Please try again.');
+      }
+    } finally {
+      setIsAppleLoading(false);
+    }
   };
 
   return (
@@ -97,10 +98,7 @@ export default function SignUpScreen() {
       >
         <View style={styles.headerSection}>
           {navigation.canGoBack() && (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
-            >
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <MaterialCommunityIcons name="chevron-left" size={28} color="#FFF" />
             </TouchableOpacity>
           )}
@@ -121,12 +119,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <View style={styles.inputRow}>
-              <MaterialCommunityIcons
-                name="email-outline"
-                size={20}
-                color={TEXT_MUTED}
-                style={styles.inputIcon}
-              />
+              <MaterialCommunityIcons name="email-outline" size={20} color={TEXT_MUTED} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="your@email.com"
@@ -144,12 +137,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
             <View style={styles.inputRow}>
-              <MaterialCommunityIcons
-                name="lock-outline"
-                size={20}
-                color={TEXT_MUTED}
-                style={styles.inputIcon}
-              />
+              <MaterialCommunityIcons name="lock-outline" size={20} color={TEXT_MUTED} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="create a password"
@@ -158,10 +146,7 @@ export default function SignUpScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeBtn}
-              >
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
                 <MaterialCommunityIcons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
@@ -175,12 +160,7 @@ export default function SignUpScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Confirm Password</Text>
             <View style={styles.inputRow}>
-              <MaterialCommunityIcons
-                name="lock-outline"
-                size={20}
-                color={TEXT_MUTED}
-                style={styles.inputIcon}
-              />
+              <MaterialCommunityIcons name="lock-outline" size={20} color={TEXT_MUTED} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="confirm your password"
@@ -189,16 +169,6 @@ export default function SignUpScreen() {
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeBtn}
-              >
-                <MaterialCommunityIcons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color={TEXT_MUTED}
-                />
-              </TouchableOpacity>
             </View>
             <View style={styles.inputUnderline} />
           </View>
@@ -220,6 +190,7 @@ export default function SignUpScreen() {
             onGoogle={handleSignInWithGoogle}
             onApple={handleSignInWithApple}
             googleLoading={isGoogleLoading}
+            appleLoading={isAppleLoading}
           />
 
           <View style={styles.footer}>
@@ -235,108 +206,29 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  headerSection: {
-    height: '25%',
-    minHeight: 160,
-    backgroundColor: PRIMARY_PURPLE,
-  },
-  backBtn: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    zIndex: 1,
-  },
-  formSection: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  formContent: {
-    paddingHorizontal: 28,
-    paddingTop: 24,
-    paddingBottom: 40,
-  },
-  titleRow: {
-    marginBottom: 28,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: TEXT_DARK,
-  },
-  titleUnderline: {
-    width: 50,
-    height: 4,
-    backgroundColor: PRIMARY_PURPLE,
-    marginTop: 4,
-    borderRadius: 2,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: TEXT_DARK,
-    marginBottom: 8,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: TEXT_DARK,
-    paddingVertical: 12,
-  },
-  eyeBtn: {
-    padding: 4,
-  },
-  inputUnderline: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-  inputUnderlineActive: {
-    backgroundColor: PRIMARY_PURPLE,
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  keyboardView: { flex: 1 },
+  headerSection: { height: '25%', minHeight: 160, backgroundColor: PRIMARY_PURPLE },
+  backBtn: { position: 'absolute', top: 16, left: 16, zIndex: 1 },
+  formSection: { flex: 1, backgroundColor: '#FFFFFF' },
+  formContent: { paddingHorizontal: 28, paddingTop: 24, paddingBottom: 40 },
+  titleRow: { marginBottom: 28 },
+  title: { fontSize: 28, fontWeight: '700', color: TEXT_DARK },
+  titleUnderline: { width: 50, height: 4, backgroundColor: PRIMARY_PURPLE, marginTop: 4, borderRadius: 2 },
+  inputGroup: { marginBottom: 20 },
+  label: { fontSize: 14, fontWeight: '500', color: TEXT_DARK, marginBottom: 8 },
+  inputRow: { flexDirection: 'row', alignItems: 'center' },
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, fontSize: 16, color: TEXT_DARK, paddingVertical: 12 },
+  eyeBtn: { padding: 4 },
+  inputUnderline: { height: 1, backgroundColor: '#E0E0E0' },
+  inputUnderlineActive: { backgroundColor: PRIMARY_PURPLE },
   signUpBtn: {
-    backgroundColor: PRIMARY_PURPLE,
-    paddingVertical: 16,
-    borderRadius: 28,
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 8,
-    minHeight: 54,
-    justifyContent: 'center',
+    backgroundColor: PRIMARY_PURPLE, paddingVertical: 16, borderRadius: 28,
+    alignItems: 'center', marginBottom: 20, marginTop: 8, minHeight: 54, justifyContent: 'center',
   },
-  signUpBtnText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 28,
-  },
-  footerText: {
-    fontSize: 15,
-    color: TEXT_MUTED,
-  },
-  signInLink: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: PRIMARY_PURPLE,
-  },
+  signUpBtnText: { fontSize: 17, fontWeight: '700', color: '#FFFFFF' },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 28 },
+  footerText: { fontSize: 15, color: TEXT_MUTED },
+  signInLink: { fontSize: 15, fontWeight: '700', color: PRIMARY_PURPLE },
 });

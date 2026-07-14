@@ -16,14 +16,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { generateAnonymousUsername } from '../constants/auth';
-import { saveUser, StoredUser } from '../utils/storage';
+import { useAuth } from '../context/AuthContext';
+import { checkUsernameAvailable } from '../services/api';
 import { PRIMARY_PURPLE, TEXT_DARK, TEXT_MUTED } from '../constants/theme';
+import { RootStackParamList } from '../navigation/RootNavigator';
 import WaveCurve from '../components/WaveCurve';
-
-export type RootStackParamList = {
-  UsernameSelection: undefined;
-  EmotionSelection: undefined;
-};
 
 type UsernameSelectionScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -32,7 +29,8 @@ type UsernameSelectionScreenNavigationProp = StackNavigationProp<
 
 export default function UsernameSelectionScreen() {
   const navigation = useNavigation<UsernameSelectionScreenNavigationProp>();
-  const [username, setUsername] = useState('');
+  const { user, updateUser } = useAuth();
+  const [username, setUsername] = useState(user?.username ?? '');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGenerate = () => {
@@ -41,20 +39,27 @@ export default function UsernameSelectionScreen() {
 
   const handleContinue = async () => {
     const name = username.trim();
-    if (!name) return;
+    if (!name || name.length < 3) {
+      Alert.alert('Invalid username', 'Username must be at least 3 characters.');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+      Alert.alert('Invalid username', 'Use only letters, numbers, and underscores.');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const user: StoredUser = {
-        id: `user_${Date.now()}`,
-        username: name,
-        authMethod: 'anonymous',
-        createdAt: new Date().toISOString(),
-      };
-      await saveUser(user);
-      navigation.replace('EmotionSelection');
-    } catch {
-      Alert.alert('Error', 'Failed to save username. Please try again.');
+      const available = await checkUsernameAvailable(name, user?.id);
+      if (!available) {
+        Alert.alert('Username taken', 'Please choose a different username.');
+        return;
+      }
+
+      const updated = await updateUser({ username: name });
+      if (!updated) {
+        Alert.alert('Error', 'Failed to save username. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -70,10 +75,7 @@ export default function UsernameSelectionScreen() {
       >
         <View style={styles.headerSection}>
           {navigation.canGoBack() && (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
-            >
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <MaterialCommunityIcons name="chevron-left" size={28} color="#FFF" />
             </TouchableOpacity>
           )}
@@ -87,11 +89,7 @@ export default function UsernameSelectionScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-              name="account-edit"
-              size={64}
-              color={PRIMARY_PURPLE}
-            />
+            <MaterialCommunityIcons name="account-edit" size={64} color={PRIMARY_PURPLE} />
           </View>
 
           <View style={styles.titleRow}>
@@ -104,12 +102,7 @@ export default function UsernameSelectionScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Username</Text>
             <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons
-                name="account-outline"
-                size={20}
-                color={TEXT_MUTED}
-                style={styles.inputIcon}
-              />
+              <MaterialCommunityIcons name="account-outline" size={20} color={TEXT_MUTED} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="e.g. SilentWave284"
@@ -146,107 +139,29 @@ export default function UsernameSelectionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  headerSection: {
-    height: '25%',
-    minHeight: 160,
-    backgroundColor: PRIMARY_PURPLE,
-  },
-  backBtn: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    zIndex: 1,
-  },
-  formSection: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  formContent: {
-    paddingHorizontal: 28,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  titleRow: {
-    marginBottom: 28,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: TEXT_DARK,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 15,
-    color: TEXT_MUTED,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 22,
-  },
-  inputGroup: {
-    marginBottom: 28,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: TEXT_DARK,
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: TEXT_DARK,
-    paddingVertical: 12,
-  },
-  inputUnderline: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-  inputUnderlineActive: {
-    backgroundColor: PRIMARY_PURPLE,
-  },
-  generateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  generateBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: PRIMARY_PURPLE,
-    marginLeft: 6,
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  keyboardView: { flex: 1 },
+  headerSection: { height: '25%', minHeight: 160, backgroundColor: PRIMARY_PURPLE },
+  backBtn: { position: 'absolute', top: 16, left: 16, zIndex: 1 },
+  formSection: { flex: 1, backgroundColor: '#FFFFFF' },
+  formContent: { paddingHorizontal: 28, paddingTop: 16, paddingBottom: 40 },
+  iconContainer: { alignItems: 'center', marginBottom: 24 },
+  titleRow: { marginBottom: 28 },
+  title: { fontSize: 26, fontWeight: '700', color: TEXT_DARK, textAlign: 'center' },
+  subtitle: { fontSize: 15, color: TEXT_MUTED, textAlign: 'center', marginTop: 8, lineHeight: 22 },
+  inputGroup: { marginBottom: 28 },
+  label: { fontSize: 14, fontWeight: '500', color: TEXT_DARK, marginBottom: 8 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center' },
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, fontSize: 16, color: TEXT_DARK, paddingVertical: 12 },
+  inputUnderline: { height: 1, backgroundColor: '#E0E0E0' },
+  inputUnderlineActive: { backgroundColor: PRIMARY_PURPLE },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
+  generateBtnText: { fontSize: 14, fontWeight: '600', color: PRIMARY_PURPLE, marginLeft: 6 },
   continueBtn: {
-    backgroundColor: PRIMARY_PURPLE,
-    paddingVertical: 16,
-    borderRadius: 28,
-    alignItems: 'center',
-    minHeight: 54,
-    justifyContent: 'center',
+    backgroundColor: PRIMARY_PURPLE, paddingVertical: 16, borderRadius: 28,
+    alignItems: 'center', minHeight: 54, justifyContent: 'center',
   },
-  continueBtnDisabled: {
-    opacity: 0.6,
-  },
-  continueBtnText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
+  continueBtnDisabled: { opacity: 0.6 },
+  continueBtnText: { fontSize: 17, fontWeight: '700', color: '#FFFFFF' },
 });

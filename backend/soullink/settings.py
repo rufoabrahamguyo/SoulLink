@@ -1,12 +1,23 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-dev-only-change-in-production"
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-dev-only-change-in-production",
+)
 
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
-ALLOWED_HOSTS: list[str] = ["127.0.0.1", "localhost", "0.0.0.0", "10.0.2.2"]
+ALLOWED_HOSTS: list[str] = [
+    h.strip()
+    for h in os.environ.get(
+        "DJANGO_ALLOWED_HOSTS",
+        "127.0.0.1,localhost,0.0.0.0,10.0.2.2",
+    ).split(",")
+    if h.strip()
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -50,12 +61,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "soullink.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Postgres when POSTGRES_HOST is set (Docker); otherwise local SQLite
+if os.environ.get("POSTGRES_HOST"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB", "soullink"),
+            "USER": os.environ.get("POSTGRES_USER", "soullink"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "soullink"),
+            "HOST": os.environ["POSTGRES_HOST"],
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        }
     }
-}
+else:
+    _db_path = os.environ.get("DJANGO_DB_PATH")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": Path(_db_path) if _db_path else BASE_DIR / "db.sqlite3",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

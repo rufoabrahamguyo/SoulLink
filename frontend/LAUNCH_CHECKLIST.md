@@ -2,7 +2,7 @@
 
 All mobile app paths live under **`frontend/`** (React Native / Expo).
 
-The API lives under **`backend/`** (Django). Run `python3 -m pip install -r backend/requirements.txt`, then `npm run api` from the repo root (or `cd backend && python3 manage.py runserver 0.0.0.0:8000`).
+The API lives under **`backend/`** (Django). Prefer Docker (+ Postgres): `npm run api:docker`. Without Docker: `python3 -m pip install -r backend/requirements.txt`, then `npm run api` (SQLite).
 
 Use this before first Google Play and App Store submissions.
 
@@ -15,7 +15,7 @@ Use this before first Google Play and App Store submissions.
 ## Secrets and config
 
 - [ ] Keep real keys only in `.env` (gitignored). Use `.env.example` as the template.
-- [ ] **Google Sign-In:** `.env` has `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Web client) and `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` (iOS OAuth client). Android OAuth client uses **release** package name + **Play App Signing** SHA-1. `iosUrlScheme` in `app.json` plugin matches the iOS client’s reversed scheme.
+- [ ] **Google Sign-In (optional):** `.env` has `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Web client) and `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` (iOS OAuth client). Auth itself is Django + Postgres JWT. Android OAuth client uses **release** package name + **Play App Signing** SHA-1. `iosUrlScheme` in `app.json` plugin matches the iOS client’s reversed scheme.
 - [ ] Do not commit `google-services.json`, keystores, or App Store Connect API keys unless you use a documented secrets workflow.
 
 ## EAS (recommended for builds)

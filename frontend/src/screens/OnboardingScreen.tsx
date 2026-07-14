@@ -6,23 +6,11 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 import { PRIMARY_PURPLE, SOFT_PURPLE, BACKGROUND, TEXT_DARK, TEXT_MUTED } from '../constants/theme';
-
-export type RootStackParamList = {
-  Onboarding: undefined;
-  Login: undefined;
-  EmotionSelection: undefined;
-};
-
-type OnboardingScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  'Onboarding'
->;
 
 function FeatureCard({
   icon,
@@ -40,10 +28,10 @@ function FeatureCard({
 }
 
 export default function OnboardingScreen() {
-  const navigation = useNavigation<OnboardingScreenNavigationProp>();
+  const { completeOnboarding } = useAuth();
 
-  const handleContinue = () => {
-    navigation.replace('Login');
+  const handleContinue = async () => {
+    await completeOnboarding();
   };
 
   return (

@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: soullink
+      POSTGRES_USER: soullink
+      POSTGRES_PASSWORD: soullink
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soullink -d soullink"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      DJANGO_DEBUG: "1"
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: soullink
+      POSTGRES_USER: soullink
+      POSTGRES_PASSWORD: soullink
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

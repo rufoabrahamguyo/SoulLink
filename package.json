@@ -2,7 +2,9 @@
   "name": "soullink",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["frontend"],
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
     "start": "npm run start -w soullink-frontend",
     "android": "npm run android -w soullink-frontend",
@@ -11,9 +13,18 @@
     "android:signing": "npm run android:signing -w soullink-frontend",
     "api": "cd backend && python3 manage.py runserver 0.0.0.0:8000",
     "api:migrate": "cd backend && python3 manage.py migrate",
+    "api:docker": "docker compose up --build",
+    "api:docker:down": "docker compose down",
+    "api:docker:logs": "docker compose logs -f api db",
+    "api:seed": "docker compose exec api python manage.py seed_demo",
+    "api:seed:reset": "docker compose exec api python manage.py seed_demo --flush-demo",
     "build:dev": "npm run build:dev -w soullink-frontend",
     "build:preview": "npm run build:preview -w soullink-frontend",
     "build:prod": "npm run build:prod -w soullink-frontend",
-    "submit": "npm run submit -w soullink-frontend"
+    "submit": "npm run submit -w soullink-frontend",
+    "postinstall": "patch-package"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   }
 }
